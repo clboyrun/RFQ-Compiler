@@ -4,32 +4,146 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:RFQ_Compiler" d:DataContext="{d:DesignInstance Type=local:MainViewModel}"
-        mc:Ignorable="d"
-        Title="{Binding Title}" Height="450" Width="800">
+        mc:Ignorable="d" Title="{Binding Title}" MinHeight="450" MinWidth="500" Height="450" Width="800" Loaded="Window_Loaded">
 
-    <Window.DataContext>
-        <local:MainViewModel />
-    </Window.DataContext>
+    <Window.Resources>
+        <ContextMenu x:Key="RowMenu">
+            <MenuItem Header="Add File" Click="AddFile_Click" />
+            <MenuItem Header="Open File" Command="{Binding OpenCommand}" />
+            <MenuItem Header="Include File" Command="{Binding InvertCommand}" Visibility="{Binding IncludeCommandVisibility}" />
+            <MenuItem Header="Remove File" Command="{Binding InvertCommand}" Visibility="{Binding RemoveCommandVisibility}" />
+            <Separator/>
+            <MenuItem Header="PDM">
+                <MenuItem Header="Select Version" Command="{Binding SelectRevisionCommand}" />
+                <MenuItem Header="Refresh References" Command="{Binding PdmRefreshCommand}" />
+            </MenuItem>
+            <MenuItem Header="SW">
+                <MenuItem Header="Refresh References" Command="{Binding SwRefreshCommand}" />
+            </MenuItem>
+        </ContextMenu>
+    </Window.Resources>
+
     <Grid>
-        <DockPanel VerticalAlignment="Top">
-        <ToolBar VerticalAlignment="Top">
-            <Button Content="File" MinWidth="50">
-                <Button.ContextMenu>
-                    <ContextMenu Name="cm" Opened="Menu_OnOpened" Closed="Menu_OnClosed" StaysOpen="true">
-                        <MenuItem Header="Open" />
-                        <MenuItem Header="Save" />
-                        <MenuItem Header="SaveAs" />
-                        <MenuItem Header="Recent Files" DataContext="{Binding RecentFiles}" />
-                    </ContextMenu>
-                </Button.ContextMenu>
-            </Button>
-        </ToolBar>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" MinHeight="20"/> <!-- Toolbar -->
+            <RowDefinition Height="*"/> <!-- Main content -->
+            <RowDefinition Height="Auto" MinHeight="20"/> <!-- Export button bar -->
+            <RowDefinition Height="Auto" MinHeight="20"/> <!-- Status bar -->
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <Menu Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+            <MenuItem Header="File" Padding="4,1" Margin="3">
+                <MenuItem Header="New" Click="MenuNew_Click" />
+                <MenuItem Header="Open" Click="MenuOpen_Click" />
+                <MenuItem Header="Save" Click="MenuSave_Click" />
+                <MenuItem Header="SaveAs" Click="MenuSaveAs_Click" />
+                <Separator />
+                <MenuItem Header="Recent Files" DataContext="{Binding RecentFiles}" />
+                <Separator />
+                <MenuItem Header="Exit" Click="MenuExit_Click" />
+            </MenuItem>
+            <MenuItem Header="Settings">
+                <MenuItem Header="Local" Click="MenuSettingsLocal_Click" />
+                <MenuItem Header="PDM" Click="MenuSettingsPdm_Click" />
+            </MenuItem>
+        </Menu>
+        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="3" Orientation="Vertical">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" MinHeight="20"/>
+                    <RowDefinition Height="Auto" MinHeight="20"/>
+                    <RowDefinition Height="Auto" MinHeight="20"/>
+                    <RowDefinition Height="Auto" MinHeight="20"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="100"/>
+                    <ColumnDefinition Width="*" MinWidth="200"/>
+                    <ColumnDefinition Width="Auto" MinWidth="20"/>
+                </Grid.ColumnDefinitions>
+
+                <Label Grid.Column="0" Grid.Row="0" Content="RFQ Number:" />
+                <TextBox Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding RfqNumber}" Margin="0,3,0,0" BorderThickness="0,0,0,1" VerticalContentAlignment="Center" />
+
+                <Label Grid.Column="0" Grid.Row="1" Content="Assembly Number:" />
+                <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding Quote.RootFile.FilePath}" IsReadOnly="True" Margin="0,3,0,0" Foreground="Blue" Background="#FFEBEBEB" TextDecorations="Underline" BorderThickness="0,0,0,1" VerticalContentAlignment="Center"/>
+                <Button Grid.Column="2" Grid.Row="1" Content="..." Margin="3,2,0,0" Click="SelectQuoteFile_Click" Width="25" />
+
+                <Label Grid.Column="0" Grid.Row="2" Content="Description:" />
+                <TextBox Grid.Column="1" Grid.Row="2" Text="{Binding Quote.RootFile.Description}" IsReadOnly="True" Margin="0,3,0,0" Background="#FFEBEBEB" BorderThickness="0,0,0,1" VerticalContentAlignment="Center" />
+
+                <Label Grid.Column="0" Grid.ColumnSpan="1" Grid.Row="3" Content="References:" />
+                <DataGrid Name="References" Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="4" ItemsSource="{Binding Quote.RootFile.BomFiles}" d:DataContext="{d:DesignInstance Type=local:PackageFile}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" CanUserSortColumns="False" AlternatingRowBackground="LightBlue" ScrollViewer.VerticalScrollBarVisibility="Visible" Height="Auto">
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="ContextMenu" Value="{StaticResource RowMenu}" />
+                            <Setter Property="Background" Value="White"/>
+                            <Setter Property="Foreground" Value="Black"/>
+
+                            <Style.Triggers>
+
+                                <DataTrigger Binding="{Binding IsExport}" Value="False">
+                                    <Setter Property="Background" Value="White"/>
+                                    <Setter Property="Foreground" Value="Red"/>
+                                </DataTrigger>
+
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="" Width="Auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="{Binding IconFileType}" Width="16" Height="16" Stretch="Uniform"/>
+                                        <Image Source="{Binding IconBomType}" Width="16" Height="16" Stretch="Uniform">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <!-- default appearance -->
+                                                    <Setter Property="Opacity" Value="1"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsBom}" Value="False">
+                                                            <Setter Property="Opacity" Value="0.35"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
+                                        <Image Source="{Binding IconExportType}" Width="16" Height="16" Stretch="Uniform">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <!-- default appearance -->
+                                                    <Setter Property="Opacity" Value="1"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsExport}" Value="False">
+                                                            <Setter Property="Opacity" Value="0.35"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="File Path" Binding="{Binding FilePath}" IsReadOnly="True" Width="*"/>
+                        <DataGridTextColumn Header="File Name" Binding="{Binding Name}" IsReadOnly="True" Width="Auto"/>
+                        <DataGridTextColumn Header="Revision" Binding="{Binding Revision}" IsReadOnly="True" Width="Auto"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </StackPanel>
+        <DockPanel Grid.Row="2" Grid.Column="1">
+            <Button Content="Export" Margin="5,5,3,5" Padding="25,3" Command="{Binding ExportCommand}" />
         </DockPanel>
-        <DockPanel Margin="0,27,0,22">
-            <Label Content="Welcome to RFQ Compiler!" />
-        </DockPanel>
-        <DockPanel VerticalAlignment="Bottom">
-            <StatusBar DockPanel.Dock="Bottom">
+        <DockPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2">
+            <StatusBar>
                 <StatusBarItem VerticalAlignment="Center">
                     <TextBlock Text="Status: Ready" />
                 </StatusBarItem>

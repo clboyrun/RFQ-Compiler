@@ -10,7 +10,7 @@ using System.Windows;
 [assembly: AssemblyTitle("RFQ Compiler")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("LynxForged Tools")]
 [assembly: AssemblyProduct("RFQ Compiler")]
 [assembly: AssemblyCopyright("Copyright ©  2026")]
 [assembly: AssemblyTrademark("")]
